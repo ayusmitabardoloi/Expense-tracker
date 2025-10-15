@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="auth-container">
+        <h2>Login to Expense Tracker</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" required placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" required placeholder="Enter your password">
+            </div>
+            <button type="submit" class="btn">Login</button>
+        </form>
+        <div class="auth-toggle">
+            Don't have an account? <a href="#" onclick="showSignup()">Sign Up</a>
+        </div>
+    </div>
+
+    <!-- Signup Page -->
+    <div id="signupPage" class="auth-container hidden">
+        <h2>Create Account</h2>
+        <form id="signupForm">
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="signupName" required placeholder="Enter your name">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="signupEmail" required placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="signupPassword" required placeholder="Create a password">
+            </div>
+            <button type="submit" class="btn">Sign Up</button>
+        </form>
+        <div class="auth-toggle">
+            Already have an account? <a href="#" onclick="showLogin()">Login</a>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="dashboard container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1>Expense Tracker Dashboard</h1>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card total">
+                <h3>TOTAL EXPENSES</h3>
+                <div class="amount" id="totalExpense">₹0.00</div>
+            </div>
+            <div class="stat-card">
+                <h3>THIS MONTH</h3>
+                <div class="amount" id="monthExpense">₹0.00</div>
+            </div>
+            <div class="stat-card">
+                <h3>TOTAL TRANSACTIONS</h3>
+                <div class="amount" id="totalTransactions">0</div>
+            </div>
+        </div>
+
+        <!-- Category Chart -->
+        <div class="chart-container">
+            <h2>Expenses by Category</h2>
+            <div id="categoryChart"></div>
+        </div>
+
+        <!-- Add Expense Form -->
+        <div class="expense-form-container">
+            <h2>Add New Expense</h2>
+            <form id="expenseForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Amount (₹)</label>
+                        <input type="number" id="amount" required step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="category" required>
+                            <option value="">Select Category</option>
+                            <option value="food">Food</option>
+                            <option value="transport">Transport</option>
+                            <option value="shopping">Shopping</option>
+                            <option value="entertainment">Entertainment</option>
+                            <option value="bills">Bills</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="date" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="description" required placeholder="Enter expense description">
+                </div>
+                <button type="submit" class="btn" id="submitBtn">Add Expense</button>
+            </form>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <div class="filter-row">
+                <div class="form-group">
+                    <label>Filter by Category</label>
+                    <select id="filterCategory" onchange="filterExpenses()">
+                        <option value="">All Categories</option>
+                        <option value="food">Food</option>
+                        <option value="transport">Transport</option>
+                        <option value="shopping">Shopping</option>
+                        <option value="entertainment">Entertainment</option>
+                        <option value="bills">Bills</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>From Date</label>
+                    <input type="date" id="filterFromDate" onchange="filterExpenses()">
+                </div>
+                <div class="form-group">
+                    <label>To Date</label>
+                    <input type="date" id="filterToDate" onchange="filterExpenses()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses List -->
+        <div class="expenses-container">
+            <h2>Recent Transactions</h2>
+            <div id="expensesList"></div>
+        </div>
+    </div>
+
+    <script>
+        // Data Storage (In-memory storage using JavaScript objects)
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+        let currentUser = null;
+        let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+        let editingExpenseId = null;
+
+        // Initialize with demo user if no users exist
+        if (users.length === 0) {
+            users.push({
+                id: 1,
+                name: 'Demo User',
+                email: 'demo@example.com',
+                password: 'demo123'
+            });
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+
+        // Authentication Functions
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            const user = users.find(u => u.email === email && u.password === password);
+            
+            if (user) {
+                currentUser = user;
+                showDashboard();
+            } else {
+                alert('Invalid email or password!');
+            }
+        });
+
+        document.getElementById('signupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+
+            // Check if user already exists
+            if (users.find(u => u.email === email)) {
+                alert('User already exists with this email!');
+                return;
+            }
+
+            // Create new user
+            const newUser = {
+                id: users.length + 1,
+                name: name,
+                email: email,
+                password: password
+            };
+
+            users.push(newUser);
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            alert('Account created successfully! Please login.');
+            showLogin();
+        });
+
+        // Navigation Functions
+        function showSignup() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('signupPage').classList.remove('hidden');
+        }
+
+        function showLogin() {
+            document.getElementById('signupPage').classList.add('hidden');
+            document.getElementById('loginPage').classList.remove('hidden');
+        }
+
+        function showDashboard() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('signupPage').classList.add('hidden');
+            document.getElementById('dashboard').style.display = 'block';
+            
+            // Set today's date as default
+            document.getElementById('date').valueAsDate = new Date();
+            
+            // Load and display expenses
+            loadExpenses();
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('loginForm').reset();
+        }
+
+        // Expense Management Functions
+        document.getElementById('expenseForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const amount = parseFloat(document.getElementById('amount').value);
+            const category = document.getElementById('category').value;
+            const date = document.getElementById('date').value;
+            const description = document.getElementById('description').value;
+
+            if (editingExpenseId) {
+                // Update existing expense
+                const index = expenses.findIndex(exp => exp.id === editingExpenseId);
+                expenses[index] = {
+                    ...expenses[index],
+                    amount: amount,
+                    category: category,
+                    date: date,
+                    description: description
+                };
+                editingExpenseId = null;
+                document.getElementById('submitBtn').textContent = 'Add Expense';
+            } else {
+                // Add new expense
+                const expense = {
+                    id: Date.now(),
+                    userId: currentUser.id,
+                    amount: amount,
+                    category: category,
+                    date: date,
+                    description: description
+                };
+                expenses.push(expense);
+            }
+
+            // Save to localStorage
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+
+            // Reset form
+            this.reset();
+            document.getElementById('date').valueAsDate = new Date();
+
+            // Reload expenses display
+            loadExpenses();
+        });
+
+        function loadExpenses() {
+            // Filter expenses for current user
+            const userExpenses = expenses.filter(exp => exp.userId === currentUser.id);
+
+            // Calculate statistics
+            const total = userExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+            const monthExpenses = userExpenses.filter(exp => {
+                const expDate = new Date(exp.date);
+                return expDate.getMonth() === currentMonth && expDate.getFullYear() === currentYear;
+            });
+            const monthTotal = monthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+            // Update stats
+            document.getElementById('totalExpense').textContent = '₹' + total.toFixed(2);
+            document.getElementById('monthExpense').textContent = '₹' + monthTotal.toFixed(2);
+            document.getElementById('totalTransactions').textContent = userExpenses.length;
+
+            // Display chart
+            displayCategoryChart(userExpenses);
+
+            // Display expenses list
+            filterExpenses();
+        }
+
+        function filterExpenses() {
+            const filterCategory = document.getElementById('filterCategory').value;
+            const filterFrom = document.getElementById('filterFromDate').value;
+            const filterTo = document.getElementById('filterToDate').value;
+
+            let userExpenses = expenses.filter(exp => exp.userId === currentUser.id);
+
+            // Apply filters
+            if (filterCategory) {
+                userExpenses = userExpenses.filter(exp => exp.category === filterCategory);
+            }
+            if (filterFrom) {
+                userExpenses = userExpenses.filter(exp => exp.date >= filterFrom);
+            }
+            if (filterTo) {
+                userExpenses = userExpenses.filter(exp => exp.date <= filterTo);
+            }
+
+            // Sort by date (newest first)
+            userExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            displayExpenses(userExpenses);
+        }
+
+        function displayExpenses(expensesList) {
+            const container = document.getElementById('expensesList');
+
+            if (expensesList.length === 0) {
+                container.innerHTML = '<div class="no-data">No expenses found. Add your first expense!</div>';
+                return;
+            }
+
+            let html = '';
+            expensesList.forEach(expense => {
+                html += `
+                    <div class="expense-item">
+                        <div>
+                            <strong>AMOUNT</strong>
+                            <div class="expense-amount">₹${expense.amount.toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <strong>CATEGORY</strong>
+                            <span class="category-badge category-${expense.category}">${expense.category.toUpperCase()}</span>
+                        </div>
+                        <div>
+                            <strong>DATE</strong>
+                            <div>${new Date(expense.date).toLocaleDateString()}</div>
+                        </div>
+                        <div>
+                            <strong>DESCRIPTION</strong>
+                            <div>${expense.description}</div>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="edit-btn" onclick="editExpense(${expense.id})">Edit</button>
+                            <button class="delete-btn" onclick="deleteExpense(${expense.id})">Delete</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function editExpense(id) {
+            const expense = expenses.find(exp => exp.id === id);
+            
+            document.getElementById('amount').value = expense.amount;
+            document.getElementById('category').value = expense.category;
+            document.getElementById('date').value = expense.date;
+            document.getElementById('description').value = expense.description;
+
+            editingExpenseId = id;
+            document.getElementById('submitBtn').textContent = 'Update Expense';
+
+            // Scroll to form
+            document.querySelector('.expense-form-container').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function deleteExpense(id) {
+            if (confirm('Are you sure you want to delete this expense?')) {
+                expenses = expenses.filter(exp => exp.id !== id);
+                localStorage.setItem('expenses', JSON.stringify(expenses));
+                loadExpenses();
+            }
+        }
+
+        function displayCategoryChart(userExpenses) {
+            const categoryTotals = {};
+            const categories = ['food', 'transport', 'shopping', 'entertainment', 'bills', 'other'];
+
+            // Calculate totals for each category
+            categories.forEach(cat => categoryTotals[cat] = 0);
+            userExpenses.forEach(exp => {
+                categoryTotals[exp.category] += exp.amount;
+            });
+
+            // Find max value for percentage calculation
+            const maxValue = Math.max(...Object.values(categoryTotals), 1);
+
+            // Generate chart HTML
+            let html = '';
+            for (const [category, total] of Object.entries(categoryTotals)) {
+                if (total > 0) {
+                    const percentage = (total / maxValue) * 100;
+                    html += `
+                        <div class="chart-bar">
+                            <div class="chart-bar-label">
+                                <span>${category.toUpperCase()}</span>
+                                <span>₹${total.toFixed(2)}</span>
+                            </div>
+                            <div class="chart-bar-fill" style="width: ${percentage}%"></div>
+                        </div>
+                    `;
+                }
+            }
+
+            const container = document.getElementById('categoryChart');
+            container.innerHTML = html || '<div class="no-data">No expense data available</div>';
+        }
+
+        // Check if user is already logged in (for page refresh)
+        window.onload = function() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showDashboard();
+            }
+        };
+
+        // Save current user on logout
+        window.onbeforeunload = function() {
+            if (currentUser) {
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            }
+        };
+    </script>
+</body>
+</html>
