@@ -37,7 +37,7 @@ This application allows users to **sign up, log in, add expenses, view total spe
 ---
 
 ## 🌐 Live Demo
-🔗 
+🔗 https://expensetrckr.netlify.app/
 
 ---
 
@@ -57,4 +57,5 @@ This application allows users to **sign up, log in, add expenses, view total spe
 🌐 [[Github](https://github.com/ayusmitabardoloi)]
 
 ---
+
 
